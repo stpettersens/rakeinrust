@@ -151,6 +151,7 @@ fn display_error(program: &str, err: &str) {
 }
 
 fn display_usage(program: &str, code: i32) {
+    println!("Rake implementation in Rust.");
     exit(code);
 }
 

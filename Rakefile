@@ -12,6 +12,12 @@ task :default do
     sh "cargo build --release"
 end
 
+task :test do
+    sh "#{tp} --help"
+    puts
+    sh "#{tp} --version"
+end
+
 task :upx => [:default] do
     if File.exists?(target) then
         File.delete(target)
