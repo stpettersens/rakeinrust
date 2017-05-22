@@ -16,6 +16,12 @@ use std::path::Path;
 use std::process::{Command, exit};
 
 #[derive(Debug)]
+struct Variable {
+    key: String,
+    value: String, 
+}
+
+#[derive(Debug)]
 struct Task {
     name: String,
     command: String,
