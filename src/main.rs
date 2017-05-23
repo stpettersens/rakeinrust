@@ -5,8 +5,13 @@
 
     Released under the MIT License.
 */
+
+mod variable;
+mod task;
 extern crate clioptions;
 extern crate regex;
+use variable::Variable;
+use task::Task;
 use clioptions::CliOptions;
 use regex::Regex;
 use std::io::Read;
@@ -15,36 +20,19 @@ use std::fs::File;
 use std::path::Path;
 use std::process::{Command, exit};
 
-#[derive(Debug)]
-struct Variable {
-    key: String,
-    value: String, 
-}
-
-#[derive(Debug)]
-struct Task {
-    name: String,
-    command: String,
-    params: String,
-}
-
-impl Task {
-    fn new(name: &str, command: &str, params: &str) -> Task {
-        Task {
-            name: name.to_owned(),
-            command: command.to_owned(),
-            params: params.to_owned(),
-        }
+fn parse_vars_in_task(task: &Task) -> Task {
+    let command = String::new();
+    let params = String::new();
+    /*let p = Regex::new("#{{(.*)}}").unwrap();
+    for cap in p.captures_iter(&task.get_command()) {
+        println!("{}", cap[1].to_owned());
     }
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-    fn get_command(&self) -> &str {
-        &self.command
-    }
-    fn get_params(&self) -> &str {
-        &self.params
-    }
+    for cap in p.captures_iter(&task.get_params()) {
+        println!("{}", cap[1].to_owned());
+    }*/
+    println!("Task is named {} and is command: {} with parameters: {}", 
+    task.get_name(), task.get_command(), task.get_params());
+    Task::new("zoo", "foo", "bar")
 }
 
 fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
@@ -52,13 +40,22 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut name = String::new();
     let mut command = String::new();
     let mut params = String::new();
+    let mut vars: Vec<Variable> = Vec::new();
     let mut tasks: Vec<Task> = Vec::new();
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
     let mut split = rf.split("\n");
     let lines : Vec<&str> = split.collect();
     for l in lines {
-        let mut p = Regex::new("task :(.*) do").unwrap();
+        let mut p = Regex::new("^#").unwrap();
+        if p.is_match(&l) {
+            continue;
+        }
+        p = Regex::new("(.*)=.*\"(.*)\"").unwrap();
+        for cap in p.captures_iter(&l) {
+            vars.push(Variable::new(&cap[1].trim(), &cap[2].trim()));
+        }
+        p = Regex::new("task :(.*) do").unwrap();
         for cap in p.captures_iter(&l) {
             name = cap[1].to_owned();
         }
@@ -82,8 +79,13 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         }
     }
 
+    /*for task in &tasks {
+        let _ = parse_vars_in_task(&task);
+    }*/
+
     // -----------------------------
-    println!("Tasks: {:#?}", tasks);
+    //println!("Vars: {:#?}", pvars);
+    //println!("Tasks: {:#?}", tasks);
     // -----------------------------
 
     let mut matched = false;
@@ -177,7 +179,11 @@ fn main() {
                 "-h" | "--help" => display_usage(&program, 0),
                 "-v" | "--version" => display_version(),
                 "-f" | "--rakefile" => srakefile = cli.next_argument(i),
-                _ => tasks.push(a.to_owned()),
+                _ => {
+                    if i > 1 {
+                        tasks.push(a.to_owned())
+                    }
+                },
             }
         }
     }
