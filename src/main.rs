@@ -56,7 +56,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut command = String::new();
     let mut params = String::new();
     let mut vars: Vec<Variable> = Vec::new();
-    let mut rvars: Vec<&str> = Vec::new();
+    let mut rvars: Vec<String> = Vec::new();
     let mut tasks: Vec<Task> = Vec::new();
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
@@ -70,8 +70,10 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         }
         p = Regex::new("(.*)=.*\"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
-            if !rvars.contains(&cap[1].trim()) || in_block {
-                vars.push(Variable::new(&cap[1].trim(), &cap[2].trim()));
+            if !rvars.contains(&cap[1].trim().to_owned()) || in_block {
+                let v = Variable::new(&cap[1].trim(), &cap[2].trim());
+                vars.push(v.clone());
+                rvars.push(v.get_key());
             }
         }
         p = Regex::new("task :(.*) do").unwrap();
