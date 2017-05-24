@@ -178,7 +178,7 @@ fn main() {
     // ------------------------------------------------------------------------
     let rakefiles = vec!["rakefile", "Rakefile", "rakefile.rb", "Rakefile.rb"];
     // ------------------------------------------------------------------------
-    let mut verbose = true;
+    //let mut verbose = true;
     let mut tasks: Vec<String> = Vec::new();
     let mut srakefile = String::new();
 
