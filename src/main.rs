@@ -10,6 +10,7 @@ mod variable;
 mod task;
 extern crate clioptions;
 extern crate regex;
+extern crate os_type;
 use variable::Variable;
 use task::Task;
 use clioptions::CliOptions;
@@ -19,6 +20,11 @@ use std::fs;
 use std::fs::File;
 use std::path::Path;
 use std::process::{Command, exit};
+
+fn get_os() -> String {
+    let os = os_type::current_platform();
+    format!("{:?}", os.os_type)
+}
 
 fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
     let split = task.get_params().split(" ");
@@ -50,11 +56,13 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut command = String::new();
     let mut params = String::new();
     let mut vars: Vec<Variable> = Vec::new();
+    let mut rvars: Vec<&str> = Vec::new();
     let mut tasks: Vec<Task> = Vec::new();
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
     let split = rf.split("\n");
     let lines: Vec<&str> = split.collect();
+    let mut in_block = false;
     for l in lines {
         let mut p = Regex::new("^#").unwrap();
         if p.is_match(&l) {
@@ -62,7 +70,9 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         }
         p = Regex::new("(.*)=.*\"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
-            vars.push(Variable::new(&cap[1].trim(), &cap[2].trim()));
+            if !rvars.contains(&cap[1].trim()) || in_block {
+                vars.push(Variable::new(&cap[1].trim(), &cap[2].trim()));
+            }
         }
         p = Regex::new("task :(.*) do").unwrap();
         for cap in p.captures_iter(&l) {
@@ -92,18 +102,27 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
             params = cap[2].to_owned();
             tasks.push(Task::new(&name, &depends, &command, &params));
         }
+        p = Regex::new(&format!("if OS.windows{} then", regex::escape("?"))).unwrap();
+        if p.is_match(&l) {
+            if get_os() == "Unknown" {
+                in_block = true;
+            } else {
+                in_block = false;
+            }
+        }
+        p = Regex::new("^end").unwrap();
+        if p.is_match(&l) {
+            in_block = false;
+        }
     }
+
+    println!("Vars = {:#?}", vars); // !!!
 
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
         let ptask = parse_vars_in_task(&task, &vars);
         ptasks.push(ptask);
     }
-
-    // --------------------------------
-    //println!("Vars: {:?}", vars);
-    //println!("Tasks: {:#?}", ptasks);
-    // --------------------------------
 
     let mut matched = false;
     let mut qtask = String::new();
