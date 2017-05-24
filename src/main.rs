@@ -21,7 +21,7 @@ use std::path::Path;
 use std::process::{Command, exit};
 
 fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
-    let mut split = task.get_params().split(" ");
+    let split = task.get_params().split(" ");
     let params: Vec<&str> = split.collect();
     let mut pparams: Vec<String> = Vec::new();
     for param in params {
@@ -53,7 +53,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut tasks: Vec<Task> = Vec::new();
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
-    let mut split = rf.split("\n");
+    let split = rf.split("\n");
     let lines: Vec<&str> = split.collect();
     for l in lines {
         let mut p = Regex::new("^#").unwrap();
@@ -141,7 +141,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
             "puts" => println!("{}", task.get_params()),
             "sh" => {
                 println!("{}", task.get_params());
-                let mut split = task.get_params().split(" ");
+                let split = task.get_params().split(" ");
                 let mut args: Vec<&str> = split.collect();
                 let cmd = args[0]; args.remove(0);
                 let output = Command::new(&cmd)
