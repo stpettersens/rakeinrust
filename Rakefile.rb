@@ -1,7 +1,7 @@
 require 'os'
 
-#target = "rrake"
-#tp = "target/release/#{target}"
+target = "rrake"
+tp = "target/release/rrake"
 
 if OS.windows? then
     target = "rrake.exe"
@@ -13,9 +13,11 @@ task :default do
 end
 
 task :test do
-    sh "#{tp} --help"
+    sh "#{target} --help"
     puts
-    sh "#{tp} --version"
+    sh "#{target} --version"
+    puts
+    sh "#{target} echo"
 end
 
 task :upx => [:default] do

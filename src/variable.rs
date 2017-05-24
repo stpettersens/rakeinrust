@@ -11,10 +11,10 @@ impl Variable {
             value: value.to_owned(),
         }
     }
-    pub fn get_key(&self) -> &str {
-        &self.key
+    pub fn get_key(&self) -> String {
+        format!("{}", &self.key)
     }
-    pub fn get_value(&self) -> &str {
-        &self.value
+    pub fn get_value(&self) -> String {
+        format!("{}", &self.value)
     }
 }

@@ -20,19 +20,26 @@ use std::fs::File;
 use std::path::Path;
 use std::process::{Command, exit};
 
-fn parse_vars_in_task(task: &Task) -> Task {
-    let command = String::new();
-    let params = String::new();
-    /*let p = Regex::new("#{{(.*)}}").unwrap();
-    for cap in p.captures_iter(&task.get_command()) {
-        println!("{}", cap[1].to_owned());
+fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
+    let mut split = task.get_params().split(" ");
+    let params: Vec<&str> = split.collect();
+    let mut pparams: Vec<String> = Vec::new();
+    for param in params {
+        let p = Regex::new(&format!("#{}(.*){}", 
+        regex::escape("{"), regex::escape("}"))).unwrap();
+        if p.is_match(param) {
+            for cap in p.captures_iter(param) {
+                for var in vars {
+                    if var.get_key() == cap[1].to_owned() {
+                        pparams.push(var.get_value());
+                    }
+                }
+            }
+        } else {
+            pparams.push(param.to_owned());
+        }
     }
-    for cap in p.captures_iter(&task.get_params()) {
-        println!("{}", cap[1].to_owned());
-    }*/
-    println!("Task is named {} and is command: {} with parameters: {}", 
-    task.get_name(), task.get_command(), task.get_params());
-    Task::new("zoo", "foo", "bar")
+    Task::new(&task.get_name(), &task.get_command(), &pparams.join(" "))
 }
 
 fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
@@ -45,7 +52,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
     let mut split = rf.split("\n");
-    let lines : Vec<&str> = split.collect();
+    let lines: Vec<&str> = split.collect();
     for l in lines {
         let mut p = Regex::new("^#").unwrap();
         if p.is_match(&l) {
@@ -79,19 +86,21 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         }
     }
 
-    /*for task in &tasks {
-        let _ = parse_vars_in_task(&task);
-    }*/
+    let mut ptasks: Vec<Task> = Vec::new();
+    for task in &tasks {
+        let ptask = parse_vars_in_task(&task, &vars);
+        ptasks.push(ptask);
+    }
 
-    // -----------------------------
-    //println!("Vars: {:#?}", pvars);
-    //println!("Tasks: {:#?}", tasks);
-    // -----------------------------
+    // --------------------------------
+    //println!("Vars: {:?}", vars);
+    //println!("Tasks: {:#?}", ptasks);
+    // --------------------------------
 
     let mut matched = false;
     let mut qtask = String::new();
     for stask in stasks {
-        for task in &tasks {
+        for task in &ptasks {
             qtask = stask.to_owned();
             if task.get_name() == stask {
                 matched = true;
@@ -179,11 +188,7 @@ fn main() {
                 "-h" | "--help" => display_usage(&program, 0),
                 "-v" | "--version" => display_version(),
                 "-f" | "--rakefile" => srakefile = cli.next_argument(i),
-                _ => {
-                    if i > 1 {
-                        tasks.push(a.to_owned())
-                    }
-                },
+                _ => tasks.push(a.to_owned()),
             }
         }
     }
