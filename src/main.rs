@@ -39,12 +39,14 @@ fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
             pparams.push(param.to_owned());
         }
     }
-    Task::new(&task.get_name(), &task.get_command(), &pparams.join(" "))
+    Task::new(&task.get_name(), &task.get_depends(), 
+    &task.get_command(), &pparams.join(" "))
 }
 
 fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut rf = String::new();
     let mut name = String::new();
+    let mut depends = String::new();
     let mut command = String::new();
     let mut params = String::new();
     let mut vars: Vec<Variable> = Vec::new();
@@ -66,23 +68,29 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         for cap in p.captures_iter(&l) {
             name = cap[1].to_owned();
         }
+        p = Regex::new(&format!("task :(.*) => {}*:*(.*){} do",
+        regex::escape("["), regex::escape("]"))).unwrap();
+        for cap in p.captures_iter(&l) {
+            name = cap[1].to_owned();
+            depends = cap[2].to_owned();
+        }
         p = Regex::new("(puts) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
             params = cap[2].to_owned();
-            tasks.push(Task::new(&name, &command, &params));
+            tasks.push(Task::new(&name, &depends, &command, &params));
         }
         p = Regex::new("(sh) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
             params = cap[2].to_owned();
-            tasks.push(Task::new(&name, &command, &params));
+            tasks.push(Task::new(&name, &depends, &command, &params));
         }
         p = Regex::new("(File.delete).*\"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
             params = cap[2].to_owned();
-            tasks.push(Task::new(&name, &command, &params));
+            tasks.push(Task::new(&name, &depends, &command, &params));
         }
     }
 
@@ -99,36 +107,56 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
 
     let mut matched = false;
     let mut qtask = String::new();
+    let mut rtasks: Vec<Task> = Vec::new();
     for stask in stasks {
+        qtask = stask.to_owned();
         for task in &ptasks {
-            qtask = stask.to_owned();
             if task.get_name() == stask {
                 matched = true;
-                match task.get_command() {
-                    "puts" => println!("{}", task.get_params()),
-                    "sh" => {
-                        println!("{}", task.get_params());
-                        let mut split = task.get_params().split(" ");
-                        let mut args: Vec<&str> = split.collect();
-                        let cmd = args[0]; args.remove(0);
-                        let output = Command::new(&cmd)
-                        .args(&args)
-                        .output()
-                        .expect("failed to execute process");
-                        println!("{}", String::from_utf8_lossy(&output.stdout));
-                    },
-                    "File.delete" => {
-                        let file = &task.get_params();
-                        if Path::new(file).exists() {
-                            fs::remove_file(file).unwrap()
+                let depends = task.get_depends();
+                if !depends.is_empty() {
+                    for dtask in &ptasks {
+                        if dtask.get_name() == depends {
+                            rtasks.push(Task::new(
+                            dtask.get_name(), 
+                            dtask.get_depends(), 
+                            dtask.get_command(), 
+                            dtask.get_params()));
                         }
-                    },
-                    _ => {},
+                    }
                 }
+                rtasks.push(Task::new(
+                task.get_name(),
+                task.get_depends(),
+                task.get_command(),
+                task.get_params()));
             }
         }
-        if !matched {
-            throw_no_task_failure(&program, &qtask);
+    }
+    if !matched {
+        throw_no_task_failure(&program, &qtask);
+    }
+    for task in &rtasks {
+        match task.get_command() {
+            "puts" => println!("{}", task.get_params()),
+            "sh" => {
+                println!("{}", task.get_params());
+                let mut split = task.get_params().split(" ");
+                let mut args: Vec<&str> = split.collect();
+                let cmd = args[0]; args.remove(0);
+                let output = Command::new(&cmd)
+                .args(&args)
+                .output()
+                .expect("failed to execute process");
+                println!("{}", String::from_utf8_lossy(&output.stdout));
+            },
+            "File.delete" => {
+                let file = &task.get_params();
+                if Path::new(file).exists() {
+                    fs::remove_file(file).unwrap()
+                }
+            },
+            _ => {},
         }
     }
     exit(0);
