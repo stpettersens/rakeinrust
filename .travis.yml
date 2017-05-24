@@ -9,6 +9,7 @@ before_install:
   - sudo apt-get install -y upx-ucl
   - sudo apt-get install -y rubygems
   - sudo gem install os
+  - upx --version
   - ruby --version
   - rake --version
 
