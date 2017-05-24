@@ -110,26 +110,18 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     let mut rtasks: Vec<Task> = Vec::new();
     for stask in stasks {
         qtask = stask.to_owned();
-        for task in &ptasks {
+        for task in ptasks.clone() {
             if task.get_name() == stask {
                 matched = true;
                 let depends = task.get_depends();
                 if !depends.is_empty() {
-                    for dtask in &ptasks {
+                    for dtask in ptasks.clone() {
                         if dtask.get_name() == depends {
-                            rtasks.push(Task::new(
-                            dtask.get_name(), 
-                            dtask.get_depends(), 
-                            dtask.get_command(), 
-                            dtask.get_params()));
+                            rtasks.push(dtask);
                         }
                     }
                 }
-                rtasks.push(Task::new(
-                task.get_name(),
-                task.get_depends(),
-                task.get_command(),
-                task.get_params()));
+                rtasks.push(task.clone());
             }
         }
     }
