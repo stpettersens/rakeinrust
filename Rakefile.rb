@@ -1,6 +1,6 @@
 require 'os'
 
-target = "rrake"
+target = "./rrake"
 tp = "target/release/rrake"
 
 if OS.windows? then

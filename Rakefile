@@ -1,6 +1,6 @@
 require 'os'
 
-target = "rrake"
+target = "./rrake"
 tp = "target/release/rrake"
 
 if OS.windows? then
@@ -17,7 +17,7 @@ task :test do
     puts
     sh "#{target} --version"
     puts
-    sh "#{target} echo"
+    sh "#{target} -f Rakefile.rb echo"
 end
 
 task :upx => [:default] do
