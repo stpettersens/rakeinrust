@@ -17,7 +17,7 @@ task :test do
     puts
     sh "#{target} --version"
     puts
-    sh "#{target} -f Rakefile.rb echo"
+    sh "#{target} echo"
 end
 
 task :upx => [:default] do

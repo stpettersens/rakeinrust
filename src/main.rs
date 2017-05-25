@@ -1,6 +1,6 @@
 /* 
     Rake in Rust.
-    Ruby build tool implemented in Rust.
+    Ruby build tool implementation.
     Copyright 2017 Sam Saint-Pettersen.
 
     Released under the MIT License.
@@ -24,6 +24,20 @@ use std::process::{Command, exit};
 fn get_os() -> String {
     let os = os_type::current_platform();
     format!("{:?}", os.os_type)
+}
+
+fn process_vars(rvars: Vec<String>, 
+mut vars: Vec<Variable>) -> Vec<Variable> {
+    let mut prvars: Vec<String> = Vec::new();
+    let mut pvars: Vec<Variable> = Vec::new();
+    vars.reverse();
+    for (i, rvar) in rvars.iter().enumerate() {
+        if !prvars.contains(rvar) {
+            prvars.push(rvar.clone());
+            pvars.push(vars[i].clone());
+        }
+    }
+    pvars
 }
 
 fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
@@ -118,11 +132,12 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
         }
     }
 
-    println!("Vars = {:#?}", vars); // !!!
+    let pvars = process_vars(rvars, vars);
+    println!("Vars = {:#?}", pvars); // !!!
 
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
-        let ptask = parse_vars_in_task(&task, &vars);
+        let ptask = parse_vars_in_task(&task, &pvars);
         ptasks.push(ptask);
     }
 
@@ -203,13 +218,17 @@ fn display_version() {
     exit(0);
 }
 
-fn display_error(program: &str, err: &str) {
+/*fn display_error(program: &str, err: &str) {
     println!("Error: {}.\n", err);
     display_usage(program, -1);
-}
+}*/
 
 fn display_usage(program: &str, code: i32) {
     println!("Rake implementation in Rust.");
+    println!("Ruby build tool implementation.");
+    println!("Copyright 2017 Sam Saint-Pettersen.");
+    println!("\nReleased under the MIT License.");
+    println!("\nUsage: {} -f|--rakefile <rakefile>", program);
     exit(code);
 }
 
