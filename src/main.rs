@@ -133,7 +133,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     }
 
     let pvars = process_vars(rvars, vars);
-    println!("Vars = {:#?}", pvars); // !!!
+    //println!("Vars = {:#?}", pvars);
 
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
@@ -224,7 +224,7 @@ fn display_version() {
 }*/
 
 fn display_usage(program: &str, code: i32) {
-    println!("Rake implementation in Rust.");
+    println!("Rake in Rust.");
     println!("Ruby build tool implementation.");
     println!("Copyright 2017 Sam Saint-Pettersen.");
     println!("\nReleased under the MIT License.");
