@@ -133,13 +133,14 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     }
 
     let pvars = process_vars(rvars, vars);
-    //println!("Vars = {:#?}", pvars);
+    println!("Vars = {:#?}", pvars);
 
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
         let ptask = parse_vars_in_task(&task, &pvars);
         ptasks.push(ptask);
     }
+    println!("Tasks = {:#?}", ptasks);
 
     let mut matched = false;
     let mut qtask = String::new();

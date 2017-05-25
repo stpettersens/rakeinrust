@@ -20,6 +20,10 @@ task :test do
     sh "#{target} echo"
 end
 
+task :cleanupx do
+    File.delete(target)
+end
+
 task :upx => [:default] do
     if File.exists?(target) then
         File.delete(target)
@@ -27,18 +31,8 @@ task :upx => [:default] do
     sh "upx -9 #{tp} -o #{target}"
 end
 
-task :clean => [:cleanupx] do
+task :clean do
     sh "cargo clean"
-end
-
-task :cleanupx do
-    if File.exists?(target) then
-        File.delete(target)
-    end
-end
-
-task :cleanlock do
-    File.delete("Cargo.lock")
 end
 
 task :echo do
