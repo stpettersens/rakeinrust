@@ -19,7 +19,7 @@ use std::io::Read;
 use std::fs;
 use std::fs::File;
 use std::path::Path;
-use std::process::{Command, exit};
+use std::process::{Command, Stdio, exit};
 
 fn get_os() -> String {
     let os = os_type::current_platform();
@@ -172,11 +172,14 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
                 let split = task.get_params().split(" ");
                 let mut args: Vec<&str> = split.collect();
                 let cmd = args[0]; args.remove(0);
-                let output = Command::new(&cmd)
+                let mut output = Command::new(&cmd)
                 .args(&args)
-                .output()
-                .expect("failed to execute process");
-                println!("{}", String::from_utf8_lossy(&output.stdout));
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .unwrap();
+                let status = output.wait();
+                //println!("Exited with status {:?}", status);
             },
             "File.delete" => {
                 let file = &task.get_params();
