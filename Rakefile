@@ -20,10 +20,6 @@ task :test do
     sh "#{target} echo"
 end
 
-task :cleanupx do
-    File.delete(target)
-end
-
 task :upx => [:default] do
     if File.exists?(target) then
         File.delete(target)
