@@ -237,11 +237,6 @@ fn display_version() {
     exit(0);
 }
 
-/*fn display_error(program: &str, err: &str) {
-    println!("Error: {}.\n", err);
-    display_usage(program, -1);
-}*/
-
 fn display_usage(program: &str, code: i32) {
     println!("Rake in Rust.");
     println!("Ruby build tool implementation.");
@@ -257,7 +252,6 @@ fn main() {
     // ------------------------------------------------------------------------
     let rakefiles = vec!["rakefile", "Rakefile", "rakefile.rb", "Rakefile.rb"];
     // ------------------------------------------------------------------------
-    //let mut verbose = true;
     let mut tasks: Vec<String> = Vec::new();
     let mut srakefile = String::new();
 
