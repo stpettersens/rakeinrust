@@ -31,6 +31,10 @@ task :clean do
     sh "cargo clean"
 end
 
+task :cleanlock do
+    File.delete("Cargo.lock")
+end
+
 task :echo do
     puts "Simple echo task..."
     puts "Prints out a string!"
