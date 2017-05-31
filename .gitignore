@@ -1,3 +1,4 @@
 target/
+install.cmd
 **/*.rs.bk
 *.exe

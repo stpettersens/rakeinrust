@@ -21,6 +21,11 @@ use std::fs::File;
 use std::path::Path;
 use std::process::{Command, Stdio, exit};
 
+struct Options {
+    verbose: bool,
+    exit_codes: bool, 
+}
+
 fn get_os() -> String {
     let os = os_type::current_platform();
     format!("{:?}", os.os_type)
@@ -63,7 +68,7 @@ fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
     &task.get_command(), &pparams.join(" "))
 }
 
-fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
+fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &Options) {
     let mut rf = String::new();
     let mut name = String::new();
     let mut depends = String::new();
@@ -182,9 +187,11 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
     }
     for task in &rtasks {
         match task.get_command() {
-            "puts" => println!("{}", task.get_params()),
+            "puts" => if opts.verbose { println!("{}", task.get_params()) },
             "sh" => {
-                println!("{}", task.get_params());
+                if opts.verbose {
+                    println!("{}", task.get_params());
+                }
                 let split = task.get_params().split(" ");
                 let mut args: Vec<&str> = split.collect();
                 let cmd = args[0]; args.remove(0);
@@ -194,8 +201,10 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>) {
                 .stderr(Stdio::inherit())
                 .spawn()
                 .unwrap();
-                let _ = output.wait(); // let status
-                //println!("Exited with status {:?}", status);
+                let status = output.wait();
+                if opts.exit_codes {
+                    println!("Exited with code {:#?}", status);
+                }
             },
             "File.delete" => {
                 let file = &task.get_params();
@@ -242,7 +251,10 @@ fn display_usage(program: &str, code: i32) {
     println!("Ruby build tool implementation.");
     println!("Copyright 2017 Sam Saint-Pettersen.");
     println!("\nReleased under the MIT License.");
-    println!("\nUsage: {} -f|--rakefile <rakefile>", program);
+    println!("\nUsage: {} [-f|--rakefile <rakefile>] [options] [task]", program);
+    println!("\nOptions are:\n");
+    println!("-q | --quiet: Do not print out to stdout other than sh stdout/stderr (Quiet mode).");
+    println!("-e | --exits: Print exit codes for sh invokations.");
     exit(code);
 }
 
@@ -254,17 +266,23 @@ fn main() {
     // ------------------------------------------------------------------------
     let mut tasks: Vec<String> = Vec::new();
     let mut srakefile = String::new();
+    let mut verbose = true;
+    let mut exit_codes = false;
 
     if cli.get_num() > 1 {
         for (i, a) in cli.get_args().iter().enumerate() {
             match a.trim() {
                 "-h" | "--help" => display_usage(&program, 0),
                 "-v" | "--version" => display_version(),
+                "-q" | "--quiet" => verbose = false,
+                "-e" | "--exits" => exit_codes = true,
                 "-f" | "--rakefile" => srakefile = cli.next_argument(i),
                 _ => tasks.push(a.to_owned()),
             }
         }
     }
+
+    let opts = Options { verbose: verbose, exit_codes: exit_codes };
 
     let mut tasks = parse_tasks(&program, tasks);
     if tasks.len() == 0 {
@@ -272,13 +290,13 @@ fn main() {
     }
     if !srakefile.is_empty() {
         if Path::new(&srakefile).exists() {
-            invoke_rakefile(&program, &srakefile, &tasks);
+            invoke_rakefile(&program, &srakefile, &tasks, &opts);
         }
     }
 
     for rakefile in &rakefiles {
         if Path::new(&rakefile).exists() {
-            invoke_rakefile(&program, &rakefile, &tasks);
+            invoke_rakefile(&program, &rakefile, &tasks, &opts);
         }
     }
     throw_not_found_failure(&program, &rakefiles);
