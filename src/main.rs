@@ -16,8 +16,7 @@ use task::Task;
 use clioptions::CliOptions;
 use regex::Regex;
 use std::io::Read;
-use std::fs;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::Path;
 use std::process::{Command, Stdio, exit};
 
