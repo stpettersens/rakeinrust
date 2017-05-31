@@ -75,7 +75,7 @@ fn parse_vars_in_task(task: &Task, vars: &Vec<Variable>) -> Task {
         }
     }
     Task::new(&task.get_name(), &task.get_depends(), 
-    &task.get_command(), &pparams.join(" "))
+    &task.get_command(), &pparams.join(" "), task.get_line())
 }
 
 fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &Options) {
@@ -92,7 +92,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     let split = rf.split("\n");
     let lines: Vec<&str> = split.collect();
     let mut in_block = false;
-    for l in lines {
+    for (i, l) in lines.iter().enumerate() {
         let mut p = Regex::new("^#").unwrap();
         if p.is_match(&l) {
             continue;
@@ -127,20 +127,20 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
             params = cap[2].to_owned();
-            tasks.push(Task::new(&name, &depends, &command, &params));
+            tasks.push(Task::new(&name, &depends, &command, &params, i));
         }
         p = Regex::new("(sh) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
             params = cap[2].to_owned();
-            tasks.push(Task::new(&name, &depends, &command, &params));
+            tasks.push(Task::new(&name, &depends, &command, &params, i));
         }
         p = Regex::new("(File.delete).*\"(.*)\"").unwrap();
         if p.is_match(&l) {
             for cap in p.captures_iter(&l) {
                 command = cap[1].to_owned();
                 params = cap[2].to_owned();
-                tasks.push(Task::new(&name, &depends, &command, &params));
+                tasks.push(Task::new(&name, &depends, &command, &params, i));
                 continue;
             }
         } else {
@@ -149,7 +149,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 command = cap[1].to_owned();
                 params = cap[2].to_owned();
                 params = format!("#{{{}}}", &params[1..params.len() - 2]);
-                tasks.push(Task::new(&name, &depends, &command, &params));
+                tasks.push(Task::new(&name, &depends, &command, &params, i));
             }
         }
         p = Regex::new(&format!("if OS.windows{} then", regex::escape("?"))).unwrap();
@@ -223,7 +223,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                     println!("Exited with code {}", ec);
                 }
                 if ec != 0 && !opts.ignore {
-                    throw_build_failiure(&program, &task.get_command(), ec);
+                    throw_build_failiure(&program, &qtask, ec, task.get_line());
                 }
             },
             "File.delete" => {
@@ -261,9 +261,9 @@ fn throw_not_found_failure(program: &str, rakefiles: &Vec<&str>) {
     exit(-1);
 }
 
-fn throw_build_failiure(program: &str, task: &str, ec: i32) {
+fn throw_build_failiure(program: &str, task: &str, ec: i32, line: usize) {
     println!("{} aborted!", program);
-    println!("Failed to build task '{}'", task);
+    println!("Failed to build task '{}' at line {}", task, line);
     println!("Exited with code: {}", ec);
     exit(ec);
 }

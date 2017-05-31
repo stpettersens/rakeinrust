@@ -4,16 +4,18 @@ pub struct Task {
     depends: String,
     command: String,
     params: String,
+    line: usize,
 }
 
 impl Task {
     pub fn new(name: &str, depends: &str, 
-    command: &str, params: &str) -> Task {
+    command: &str, params: &str, line: usize) -> Task {
         Task {
             name: name.to_owned(),
             depends: depends.to_owned(),
             command: command.to_owned(),
             params: params.to_owned(),
+            line: line,
         }
     }
     pub fn get_name(&self) -> &str {
@@ -27,5 +29,8 @@ impl Task {
     }
     pub fn get_params(&self) -> &str {
         &self.params
+    }
+    pub fn get_line(&self) -> usize {
+        self.line
     }
 }
