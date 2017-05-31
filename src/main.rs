@@ -23,7 +23,17 @@ use std::process::{Command, Stdio, exit};
 
 struct Options {
     verbose: bool,
-    exit_codes: bool, 
+    exit_codes: bool,
+    ignore: bool,
+}
+
+fn parse_unit(unit: &str) -> i32 {
+    let n = unit.parse::<i32>().ok();
+    let unit = match n {
+        Some(unit) => unit as i32,
+        None => 0 as i32,
+    };
+    unit
 }
 
 fn get_os() -> String {
@@ -202,8 +212,18 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 .spawn()
                 .unwrap();
                 let status = output.wait();
+                let strstat = format!("{:?}", status);
+                let p = Regex::new("([0-9]+)").unwrap();
+                let mut code = String::new();
+                for cap in p.captures_iter(&strstat) {
+                    code = cap[0].to_owned();
+                }
+                let ec = parse_unit(code.trim());
                 if opts.exit_codes {
-                    println!("Exited with code {:#?}", status);
+                    println!("Exited with code {}", ec);
+                }
+                if ec != 0 && !opts.ignore {
+                    throw_build_failiure(&program, &task.get_command(), ec);
                 }
             },
             "File.delete" => {
@@ -241,6 +261,13 @@ fn throw_not_found_failure(program: &str, rakefiles: &Vec<&str>) {
     exit(-1);
 }
 
+fn throw_build_failiure(program: &str, task: &str, ec: i32) {
+    println!("{} aborted!", program);
+    println!("Failed to build task '{}'", task);
+    println!("Exited with code: {}", ec);
+    exit(ec);
+}
+
 fn display_version() {
     println!("rake in rust, version 0.1.0");
     exit(0);
@@ -255,6 +282,7 @@ fn display_usage(program: &str, code: i32) {
     println!("\nOptions are:\n");
     println!("-q | --quiet: Do not print out to stdout other than sh stdout/stderr (Quiet mode).");
     println!("-e | --exits: Print exit codes for sh invokations.");
+    println!("-i | --ignore: Ignore bad exit codes and continue.");
     exit(code);
 }
 
@@ -268,6 +296,7 @@ fn main() {
     let mut srakefile = String::new();
     let mut verbose = true;
     let mut exit_codes = false;
+    let mut ignore = false;
 
     if cli.get_num() > 1 {
         for (i, a) in cli.get_args().iter().enumerate() {
@@ -276,13 +305,18 @@ fn main() {
                 "-v" | "--version" => display_version(),
                 "-q" | "--quiet" => verbose = false,
                 "-e" | "--exits" => exit_codes = true,
+                "-i" | "--ignore" => ignore = true,
                 "-f" | "--rakefile" => srakefile = cli.next_argument(i),
                 _ => tasks.push(a.to_owned()),
             }
         }
     }
 
-    let opts = Options { verbose: verbose, exit_codes: exit_codes };
+    let opts = Options { 
+        verbose: verbose, 
+        exit_codes: exit_codes,
+        ignore: ignore,
+    };
 
     let mut tasks = parse_tasks(&program, tasks);
     if tasks.len() == 0 {
