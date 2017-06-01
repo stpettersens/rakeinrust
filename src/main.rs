@@ -16,8 +16,7 @@ use task::Task;
 use clioptions::CliOptions;
 use regex::Regex;
 use std::io::Read;
-use std::fs;
-use std::fs::File;
+use std::fs::{self, File};
 use std::path::Path;
 use std::process::{Command, Stdio, exit};
 
@@ -25,6 +24,27 @@ struct Options {
     verbose: bool,
     exit_codes: bool,
     ignore: bool,
+}
+
+fn validate_rakefile(rakefile: &str) -> bool {
+    let mut valid = false;
+    let mut rf = String::new();
+    let mut file = File::open(&rakefile).unwrap();
+    let _ = file.read_to_string(&mut rf);
+    let p = Regex::new("task .* do").unwrap();
+    if p.is_match(&rf) {
+        valid = true;
+    }
+    valid
+}
+
+fn validate_extension(rakefile: &str) -> bool {
+    let mut valid = false;
+    let p = Regex::new("Rakefile|rakefile|^.rb$").unwrap();
+    if p.is_match(&rakefile) {
+        valid = true;
+    }
+    valid
 }
 
 fn parse_unit(unit: &str) -> i32 {
@@ -144,13 +164,26 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 continue;
             }
         } else {
-            p = Regex::new("(File.delete)(((.*)))$").unwrap();
+            p = Regex::new("(File.delete)(((.*)))").unwrap();
             for cap in p.captures_iter(&l) {
                 command = cap[1].to_owned();
                 params = cap[2].to_owned();
                 params = format!("#{{{}}}", &params[1..params.len() - 2]);
                 tasks.push(Task::new(&name, &depends, &command, &params, i));
             }
+        }
+        p = Regex::new(r"(FileUtils.copy)(((.*)))").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = cap[1].to_owned();
+            params = cap[2].to_owned();
+            let ip = Regex::new("(.*), (.*)").unwrap();
+            let mut fparams = String::new();
+            for cap in ip.captures_iter(&params) {
+                fparams = format!("#{{{}}} #{{{}}}", &cap[1][1..cap[1].len()], 
+                &cap[2][0..cap[2].len() - 2]);
+            }
+            tasks.push(Task::new(&name, &depends, &command, &fparams, i));
+
         }
         p = Regex::new(&format!("if OS.windows{} then", regex::escape("?"))).unwrap();
         if p.is_match(&l) {
@@ -175,6 +208,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     let mut matched = false;
     let mut qtask = String::new();
     let mut rtasks: Vec<Task> = Vec::new();
+    let mut lnos: Vec<usize> = Vec::new();
     for stask in stasks {
         qtask = stask.to_owned();
         for task in ptasks.clone() {
@@ -183,8 +217,10 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 let depends = task.get_depends();
                 if !depends.is_empty() {
                     for dtask in ptasks.clone() {
-                        if dtask.get_name() == depends {
-                            rtasks.push(dtask);
+                        if dtask.get_name() == depends 
+                        && !lnos.contains(&dtask.get_line()) {
+                            rtasks.push(dtask.clone());
+                            lnos.push(dtask.get_line());
                         }
                     }
                 }
@@ -192,6 +228,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             }
         }
     }
+    //println!("{:#?}", rtasks);
     if !matched {
         throw_no_task_failure(&program, &qtask);
     }
@@ -232,6 +269,13 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                     fs::remove_file(file).unwrap()
                 }
             },
+            "FileUtils.copy" => {
+                let sd = &task.get_params();
+                let p = Regex::new("(.*) (.*)").unwrap();
+                for cap in p.captures_iter(&sd) {
+                    fs::copy(&cap[1], &cap[2]).unwrap();
+                }
+            }
             _ => {},
         }
     }
@@ -268,6 +312,12 @@ fn throw_build_failiure(program: &str, task: &str, ec: i32, line: usize) {
     exit(ec);
 }
 
+fn throw_bad_format_file(program: &str, file: &str) {
+    println!("{} aborted!", program);
+    println!("Provided file '{}' does not seem to be in Rakefile format.", file);
+    exit(-1);
+}
+
 fn display_version() {
     println!("rake in rust, version 0.1.0");
     exit(0);
@@ -282,7 +332,9 @@ fn display_usage(program: &str, code: i32) {
     println!("\nOptions are:\n");
     println!("-q | --quiet: Do not print out to stdout other than sh stdout/stderr (Quiet mode).");
     println!("-e | --exits: Print exit codes for sh invokations.");
-    println!("-i | --ignore: Ignore bad exit codes and continue.");
+    println!("-i | --ignore-ec: Ignore bad exit codes and continue.");
+    println!("-x | --ignore-ext: Ignore extension for Rakefile.");
+    println!("-m | --ignore-format: Ignore format for Rakefile.");
     exit(code);
 }
 
@@ -297,6 +349,8 @@ fn main() {
     let mut verbose = true;
     let mut exit_codes = false;
     let mut ignore = false;
+    let mut ext = true;
+    let mut format = true;
 
     if cli.get_num() > 1 {
         for (i, a) in cli.get_args().iter().enumerate() {
@@ -305,8 +359,10 @@ fn main() {
                 "-v" | "--version" => display_version(),
                 "-q" | "--quiet" => verbose = false,
                 "-e" | "--exits" => exit_codes = true,
-                "-i" | "--ignore" => ignore = true,
                 "-f" | "--rakefile" => srakefile = cli.next_argument(i),
+                "-i" | "--ignore-ec" => ignore = true,
+                "-x" | "--ignore-ext" => ext = false,
+                "-m" | "--ignore-format" => format = false,
                 _ => tasks.push(a.to_owned()),
             }
         }
@@ -323,12 +379,20 @@ fn main() {
         tasks.push("default".to_owned());
     }
     if !srakefile.is_empty() {
+        if (ext && !validate_extension(&srakefile)) 
+        || (format && !validate_rakefile(&srakefile)) {
+            throw_bad_format_file(&program, &srakefile);
+        }
         if Path::new(&srakefile).exists() {
             invoke_rakefile(&program, &srakefile, &tasks, &opts);
         }
     }
 
     for rakefile in &rakefiles {
+        if (ext && !validate_extension(&rakefile))
+        || (format && !validate_rakefile(&rakefile)) {
+            throw_bad_format_file(&program, &rakefile);
+        }
         if Path::new(&rakefile).exists() {
             invoke_rakefile(&program, &rakefile, &tasks, &opts);
         }
