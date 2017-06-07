@@ -20,7 +20,7 @@ task :test do
     puts
     sh "#{target} --version"
     puts
-    sh "#{target} echo"
+    sh "#{target} -f Rakefile echo"
 end
 
 task :upx => [:default] do
