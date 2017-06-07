@@ -130,6 +130,10 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 rvars.push(v.get_key());
             }
         }
+        p = Regex::new("task :.* do #[ignore]").unwrap();
+        if p.is_match(&l) {
+            continue;
+        }
         p = Regex::new("task :(.*) do").unwrap();
         for cap in p.captures_iter(&l) {
             name = cap[1].to_owned();
