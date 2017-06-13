@@ -54,3 +54,17 @@ end
 task :cleansh do
     File.delete("dummy.txt")
 end
+
+task :countdown do
+    puts "5"
+    sleep 1000
+    puts "4"
+    sleep 1000
+    puts "3"
+    sleep 1000
+    puts "2"
+    sleep 1000
+    puts "1"
+    sleep 1000
+    puts "Blast off!"
+end

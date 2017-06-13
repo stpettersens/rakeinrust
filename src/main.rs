@@ -18,6 +18,7 @@ use regex::Regex;
 use std::io::Read;
 use std::fs::{self, File};
 use std::path::Path;
+use std::thread;
 use std::process::{Command, Stdio, exit};
 
 struct Options {
@@ -163,6 +164,12 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 tasks.push(Task::new(&name, &depends, &command, &params, i));
             }
         }
+        p = Regex::new("(sleep) (.*)").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = cap[1].to_owned();
+            params = cap[2].to_owned();
+            tasks.push(Task::new(&name, &depends, &command, &params.trim(), i));
+        }
         p = Regex::new("(sh) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
@@ -249,6 +256,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     for task in &rtasks {
         match task.get_command() {
             "puts" => if opts.verbose { println!("{}", task.get_params()) },
+            "sleep" => { thread::sleep_ms(parse_unit(task.get_params()) as u32) },
             "sh" => {
                 if opts.verbose {
                     println!("{}", task.get_params());
