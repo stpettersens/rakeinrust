@@ -22,7 +22,7 @@ task :test do
     puts
     sh "#{target} -f Rakefile echo"
     puts
-    sh "#{target} countdown"
+    sh "#{target} --file Rakefile.rb countdown"
 end
 
 task :upx => [:default] do
