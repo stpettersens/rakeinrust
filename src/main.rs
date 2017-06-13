@@ -102,8 +102,8 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     let mut rf = String::new();
     let mut name = String::new();
     let mut depends = String::new();
-    let mut command = String::new();
-    let mut params = String::new();
+    let mut command: String;
+    let mut params: String;
     let mut vars: Vec<Variable> = Vec::new();
     let mut rvars: Vec<String> = Vec::new();
     let mut tasks: Vec<Task> = Vec::new();
@@ -112,6 +112,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     let split = rf.split("\n");
     let lines: Vec<&str> = split.collect();
     let mut in_block = false;
+    let mut l_puts = false;
     for (i, l) in lines.iter().enumerate() {
         let mut p = Regex::new("^#").unwrap();
         if p.is_match(&l) {
@@ -152,6 +153,15 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             command = cap[1].to_owned();
             params = cap[2].to_owned();
             tasks.push(Task::new(&name, &depends, &command, &params, i));
+            l_puts = true;
+        }
+        p = Regex::new("(puts)").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = cap[1].to_owned();
+            params = String::new();
+            if !l_puts {
+                tasks.push(Task::new(&name, &depends, &command, &params, i));
+            }
         }
         p = Regex::new("(sh) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
