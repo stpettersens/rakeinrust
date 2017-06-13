@@ -381,7 +381,7 @@ fn main() {
                 "-v" | "--version" => display_version(),
                 "-q" | "--quiet" => verbose = false,
                 "-e" | "--exits" => exit_codes = true,
-                "-f" | "--rakefile" => srakefile = cli.next_argument(i),
+                "-f" | "--rakefile" | "--file" => srakefile = cli.next_argument(i),
                 "-i" | "--ignore-ec" => ignore = true,
                 "-x" | "--ignore-ext" => ext = false,
                 "-m" | "--ignore-format" => format = false,
