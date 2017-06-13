@@ -21,6 +21,8 @@ task :test do
     sh "#{target} --version"
     puts
     sh "#{target} -f Rakefile echo"
+    puts
+    sh "#{target} countdown"
 end
 
 task :upx => [:default] do
