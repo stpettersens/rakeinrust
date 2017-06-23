@@ -8,11 +8,13 @@
 
 mod variable;
 mod task;
+mod struct;
 extern crate clioptions;
 extern crate regex;
 extern crate os_type;
 use variable::Variable;
 use task::Task;
+use struct::Struct;
 use clioptions::CliOptions;
 use regex::Regex;
 use std::io::Read;

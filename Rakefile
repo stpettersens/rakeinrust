@@ -3,12 +3,10 @@ require 'fileutils'
 
 target = "./rrake"
 tp = "target/release/rrake"
-ip = "/usr/bin/rake"
 
 if OS.windows? then
     target = "rrake.exe"
     tp = "target\\release\\rrake.exe"
-    ip = "C:\\bin\\rake.exe"
 end
 
 task :default do
@@ -34,10 +32,6 @@ task :upx => [:default] do
         File.delete(target)
     end
     sh "upx -9 #{tp} -o #{target}"
-end
-
-task :install => [:upx] do
-    FileUtils.copy(target, ip)
 end
 
 task :clean do
