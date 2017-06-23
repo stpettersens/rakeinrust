@@ -24,6 +24,8 @@ task :test do
     puts
     sh "#{target} -f Rakefile refertoecho"
     puts
+    sh "#{target} -f Rakefile pwd"
+    puts
     sh "#{target} --rakefile Rakefile countdown"
 end
 
@@ -57,6 +59,10 @@ end
 
 task :cleansh do
     File.delete("dummy.txt")
+end
+
+task :pwd do
+    Dir.pwd
 end
 
 task :countdown do

@@ -19,6 +19,7 @@ use std::io::Read;
 use std::fs::{self, File};
 use std::path::Path;
 use std::thread;
+use std::env;
 use std::process::{Command, Stdio, exit};
 
 struct Options {
@@ -181,6 +182,28 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             params = cap[2].to_owned();
             tasks.push(Task::new(&name, &depends, &command, &params.trim(), i));
         }
+        p = Regex::new("(Dir.pwd)").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = cap[1].to_owned();
+            tasks.push(Task::new(&name, &depends, &command, "", i));
+        }
+        p = Regex::new("(Dir.chdir).*\"(.*)\"").unwrap();
+        if p.is_match(&l) {
+            for cap in p.captures_iter(&l) {
+                command = cap[1].to_owned();
+                params = cap[2].to_owned();
+                tasks.push(Task::new(&name, &depends, &command, &params, i));
+                continue;
+            }
+        } else {
+            p = Regex::new("(Dir.chdir)(((.*)))").unwrap();
+            for cap in p.captures_iter(&l) {
+                command = cap[1].to_owned();
+                params = cap[2].to_owned();
+                params = format!("#{{{}}}", &params[1..params.len() - 2]);
+                tasks.push(Task::new(&name, &depends, &command, &params, i));
+            }
+        }
         p = Regex::new("(sh) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
@@ -264,6 +287,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     if !matched {
         throw_no_task_failure(&program, &qtask);
     }
+    let mut wkdir = env::current_dir().unwrap();
     for task in &rtasks {
         match task.get_command() {
             "puts" => if opts.verbose { println!("{}", task.get_params()) },
@@ -279,6 +303,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 .args(&args)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())
+                .current_dir(&format!("{}", wkdir.display()))
                 .spawn()
                 .unwrap();
                 let status = output.wait();
@@ -295,6 +320,13 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 if ec != 0 && !opts.ignore {
                     throw_build_failiure(&program, &qtask, ec, task.get_line());
                 }
+            },
+            "Dir.pwd" => {
+                println!("{}", wkdir.display());
+            },
+            "Dir.chdir" => {
+                assert!(env::set_current_dir(&task.get_params()).is_ok());
+                wkdir = env::current_dir().unwrap();
             },
             "File.delete" => {
                 let file = &task.get_params();
