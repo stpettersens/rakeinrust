@@ -144,10 +144,21 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
         }
         p = Regex::new(&format!("task :(.*) => {}*:*(.*){} do",
         regex::escape("["), regex::escape("]"))).unwrap();
-        for cap in p.captures_iter(&l) {
-            name = cap[1].to_owned();
-            depends = cap[2].to_owned();
-            continue;
+        if p.is_match(&l) {
+            for cap in p.captures_iter(&l) {
+                name = cap[1].to_owned();
+                depends = cap[2].to_owned();
+                continue;
+            }
+        } else {
+            p = Regex::new(&format!("task :(.*) => {}*:*(.*){}",
+            regex::escape("["), regex::escape("]"))).unwrap();
+            for cap in p.captures_iter(&l) {
+                name = cap[1].to_owned();
+                depends = cap[2].to_owned();
+                tasks.push(Task::new(&name, &depends, "", "", i));
+                continue;
+            }
         }
         p = Regex::new("(puts) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
