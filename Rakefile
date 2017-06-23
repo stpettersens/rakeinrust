@@ -22,6 +22,8 @@ task :test do
     puts
     sh "#{target} -f Rakefile echo"
     puts
+    sh "#{target} -f Rakefile refertoecho"
+    puts
     sh "#{target} --rakefile Rakefile countdown"
 end
 
@@ -70,3 +72,5 @@ task :countdown do
     sleep 1000
     puts "Blast off!"
 end
+
+task :refertoecho => [:echo]
