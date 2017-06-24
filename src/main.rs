@@ -8,13 +8,13 @@
 
 mod variable;
 mod task;
-mod struct;
+mod rstruct;
 extern crate clioptions;
 extern crate regex;
 extern crate os_type;
 use variable::Variable;
 use task::Task;
-use struct::Struct;
+use rstruct::Struct;
 use clioptions::CliOptions;
 use regex::Regex;
 use std::io::Read;
@@ -28,6 +28,26 @@ struct Options {
     verbose: bool,
     exit_codes: bool,
     ignore: bool,
+}
+
+fn get_struct_fields(cfields: &str) -> Vec<String> {
+    let split = cfields.split(",");
+    let fields: Vec<&str> = split.collect();
+    let mut ffields: Vec<String> = Vec::new();
+    for (i, f) in fields.iter().enumerate() {
+        let mut ff: String;
+        if i == 0 {
+            ff = format!("{}", &f[1..].trim());
+        } else if i == fields.len() - 1 {
+            ff = format!("{}", &f[0..f.len() - 1].trim());
+        } else {
+            ff = format!("{}", f.trim());
+        }
+        if !ff.is_empty() {
+            ffields.push(ff.to_owned());
+        }
+    }
+    ffields
 }
 
 fn validate_rakefile(rakefile: &str) -> bool {
@@ -65,8 +85,7 @@ fn get_os() -> String {
     format!("{:?}", os.os_type)
 }
 
-fn process_vars(rvars: Vec<String>, 
-mut vars: Vec<Variable>) -> Vec<Variable> {
+fn process_vars(rvars: Vec<String>, mut vars: Vec<Variable>) -> Vec<Variable> {
     let mut prvars: Vec<String> = Vec::new();
     let mut pvars: Vec<Variable> = Vec::new();
     vars.reverse();
@@ -109,12 +128,16 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     let mut command: String;
     let mut params: String;
     let mut vars: Vec<Variable> = Vec::new();
+    let mut structs: Vec<Struct> = Vec::new();
     let mut rvars: Vec<String> = Vec::new();
+    let mut rstructs: Vec<String> = Vec::new();
     let mut tasks: Vec<Task> = Vec::new();
     let mut file = File::open(rakefile).unwrap();
     let _ = file.read_to_string(&mut rf);
     let split = rf.split("\n");
     let lines: Vec<&str> = split.collect();
+    let mut struct_index: i64 = -1;
+    let mut in_struct = false;
     let mut in_block = false;
     let mut l_puts = false;
     for (i, l) in lines.iter().enumerate() {
@@ -126,6 +149,18 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
         if p.is_match(&l) {
             in_block = false;
             continue;
+        }
+        p = Regex::new("(.*)=.*Struct.new(((.*)))").unwrap();
+        for cap in p.captures_iter(&l) {
+            if !rstructs.contains(&cap[1].trim().to_owned()) || in_block {
+                let fields: Vec<String> = get_struct_fields(&cap[2].trim());
+                let s = Struct::new(&cap[1].trim(), fields);
+                structs.push(s.clone());
+                rstructs.push(cap[1].trim().to_owned());
+                in_struct = true;
+                struct_index += 1;
+                continue;
+            }
         }
         p = Regex::new("(.*)=.*\"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
@@ -251,6 +286,8 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             }
         }
     }
+
+    println!("Structs = {:#?}", structs);
 
     let pvars = process_vars(rvars, vars);
     //println!("Vars = {:#?}", pvars);
