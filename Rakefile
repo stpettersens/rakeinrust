@@ -1,5 +1,6 @@
 require 'os'
 require 'fileutils'
+require 'json'
 
 Gemstone = Struct.new(:gem, :qty)
 
