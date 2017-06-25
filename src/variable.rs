@@ -14,6 +14,9 @@ impl Variable {
     pub fn get_key(&self) -> String {
         format!("{}", &self.key)
     }
+    pub fn set_value(&mut self, value: &str) {
+        self.value = value.to_owned();
+    }
     pub fn get_value(&self) -> String {
         format!("{}", &self.value)
     }

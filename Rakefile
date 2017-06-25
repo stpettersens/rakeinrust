@@ -1,6 +1,8 @@
 require 'os'
 require 'fileutils'
 
+Gemstone = Struct.new(:gem, :qty)
+
 target = "./rrake"
 tp = "target/release/rrake"
 
@@ -23,6 +25,8 @@ task :test do
     sh "#{target} -f Rakefile refertoecho"
     puts
     sh "#{target} -f Rakefile pwd"
+    puts
+    s "#{target} --file Rakefile gemstone"
     puts
     sh "#{target} --rakefile Rakefile countdown"
 end
@@ -59,7 +63,13 @@ task :pwd do
     Dir.pwd
 end
 
+task :gemstone do
+    gemstone = Gemstone.new("ruby", 3)
+    puts gemstone.to_h.to_json
+end
+
 task :countdown do
+    # TODO implement loops
     puts "5"
     sleep 1000
     puts "4"
