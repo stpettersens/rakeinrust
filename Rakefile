@@ -27,7 +27,7 @@ task :test do
     puts
     sh "#{target} -f Rakefile pwd"
     puts
-    s "#{target} --file Rakefile gemstone"
+    sh "#{target} --file Rakefile gemstone"
     puts
     sh "#{target} --rakefile Rakefile countdown"
 end
