@@ -6,10 +6,12 @@ Gemstone = Struct.new(:gem, :qty)
 
 target = "./rrake"
 tp = "target/release/rrake"
+add = "test/add.rb"
 
 if OS.windows? then
     target = "rrake.exe"
     tp = "target\\release\\rrake.exe"
+    add = "test\\add.rb"
 end
 
 task :default do
@@ -30,6 +32,8 @@ task :test do
     sh "#{target} --file Rakefile gemstone"
     puts
     sh "#{target} --rakefile Rakefile countdown"
+    puts
+    ruby "#{add}"
 end
 
 task :upx => [:default] do
