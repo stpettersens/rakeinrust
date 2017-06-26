@@ -17,7 +17,7 @@ use task::Task;
 use rstruct::Struct;
 use clioptions::CliOptions;
 use regex::Regex;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::fs::{self, File};
 use std::path::Path;
 use std::thread;
@@ -267,6 +267,13 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             l_puts = true;
             continue;
         }
+        /*p = Regex::new(".write.*(.*)").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = "File.write".to_owned();
+            params = format!("{}", &cap[1]); 
+            tasks.push(Task::new(&name, &depends, &command, &params.trim(), i));
+            continue;
+        }*/
         p = Regex::new("(sleep) (.*)").unwrap();
         for cap in p.captures_iter(&l) {
             command = cap[1].to_owned();
@@ -430,7 +437,12 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 for cap in p.captures_iter(&sd) {
                     fs::copy(&cap[1], &cap[2]).unwrap();
                 }
-            }
+            },
+            "File.write" => {
+                let c = &task.get_params();
+                let mut w = File::create("file").unwrap();
+                let _ = w.write_all("foo".as_bytes());
+            },
             _ => {},
         }
     }
