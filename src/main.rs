@@ -308,6 +308,12 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             params = cap[2].to_owned();
             tasks.push(Task::new(&name, &depends, &command, &params, i));
         }
+        p = Regex::new("(ruby) \"(.*)\"").unwrap();
+        for cap in p.captures_iter(&l) {
+            command = "sh".to_owned();
+            params = format!("ruby {}", cap[2].to_owned());
+            tasks.push(Task::new(&name, &depends, &command, &params, i));
+        }
         p = Regex::new("(File.delete).*\"(.*)\"").unwrap();
         if p.is_match(&l) {
             for cap in p.captures_iter(&l) {
