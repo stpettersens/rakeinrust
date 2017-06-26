@@ -33,7 +33,7 @@ task :test do
     puts
     sh "#{target} --rakefile Rakefile countdown"
     puts
-    ruby "#{add}"
+    sh "#{target} --rakefile Rakefile ruby"
 end
 
 task :upx => [:default] do
@@ -86,6 +86,10 @@ task :countdown do
     puts "1"
     sleep 1000
     puts "Blast off!"
+end
+
+task :ruby do
+    ruby "#{add}"
 end
 
 task :refertoecho => [:echo]
