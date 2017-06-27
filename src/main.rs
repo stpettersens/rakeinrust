@@ -344,7 +344,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             tasks.push(Task::new(&name, &depends, &command, &fparams, i));
 
         }
-        p = Regex::new(&format!("if OS.windows{} then", regex::escape("?"))).unwrap();
+        p = Regex::new(&format!("if OS.windows{}", regex::escape("?"))).unwrap();
         if p.is_match(&l) {
             if get_os() == "Unknown" {
                 in_block = true;
