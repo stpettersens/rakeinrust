@@ -198,6 +198,21 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 continue;
             }
         }
+        p = Regex::new(&format!("ENV{}\'(.*)\'{}",
+        regex::escape("["), regex::escape("]"))).unwrap();
+        for cap in p.captures_iter(&l) {
+            if !rvars.contains(&format!("ENV_{}", cap[1].trim())) || in_block {
+                let mut v = Variable::new(&format!("ENV_{}", &cap[1].trim()), "[ENV]");
+                vars.push(v.clone());
+                match env::var(&cap[1].trim()) {
+                    Ok(val) => v.set_value(&val),
+                    Err(e) => v.set_value(""),
+                }
+                vars.push(v.clone());
+                rvars.push(v.get_key());
+                continue;
+            }
+        }
         p = Regex::new("(.*)=(.*).new(((.*)))").unwrap();
         for cap in p.captures_iter(&l) {
             for s in &mut structs {
@@ -311,7 +326,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
         p = Regex::new("(ruby) \"(.*)\"").unwrap();
         for cap in p.captures_iter(&l) {
             command = "sh".to_owned();
-            params = format!("ruby {}", cap[2].to_owned());
+            params = format!("{} {}", cap[1].to_owned(), cap[2].to_owned());
             tasks.push(Task::new(&name, &depends, &command, &params, i));
         }
         p = Regex::new("(File.delete).*\"(.*)\"").unwrap();
@@ -344,7 +359,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
             tasks.push(Task::new(&name, &depends, &command, &fparams, i));
 
         }
-        p = Regex::new(&format!("if OS.windows{}", regex::escape("?"))).unwrap();
+        p = Regex::new(&format!("if OS.windows{} then", regex::escape("?"))).unwrap();
         if p.is_match(&l) {
             if get_os() == "Unknown" {
                 in_block = true;
@@ -355,7 +370,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     }
 
     let pvars = process_struct_vars(&structs, process_vars(rvars, vars));
-    //println!("Vars = {:#?}", pvars);
+    println!("Vars = {:#?}", pvars);
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
         let ptask = parse_vars_in_task(&task, &pvars);
