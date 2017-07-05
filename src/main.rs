@@ -367,6 +367,23 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
                 in_block = false;
             }
         }
+        p = Regex::new(&format!("if ENV{}\'(.*)\'{} then",
+        regex::escape("["), regex::escape("]"))).unwrap();
+        for cap in p.captures_iter(&l) {
+            for rvar in &rvars {
+                for var in &vars {
+                    if &var.get_key() == rvar {
+                        if var.get_value().len() > 0 {
+                            in_block = true;
+                            break;
+                        } else if var.get_value().len() == 0 {
+                            in_block = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     let pvars = process_struct_vars(&structs, process_vars(rvars, vars));

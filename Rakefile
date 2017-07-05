@@ -3,6 +3,7 @@ require 'fileutils'
 require 'json'
 
 Gemstone = Struct.new(:gem, :qty)
+ENV['JAVA_HOME']
 
 target = "./rrake"
 tp = "target/release/rrake"
@@ -90,6 +91,12 @@ end
 
 task :ruby do
     ruby "#{add}"
+end
+
+task :env do
+    if ENV['JAVA_HOME'] then
+        puts "JAVA_HOME variable is set."
+    end
 end
 
 task :refertoecho => [:echo]
