@@ -20,8 +20,7 @@ use regex::Regex;
 use std::io::{Read, Write};
 use std::fs::{self, File};
 use std::path::Path;
-use std::thread;
-use std::env;
+use std::{thread, time, env};
 use std::process::{Command, Stdio, exit};
 
 struct Options {
@@ -426,7 +425,10 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     for task in &rtasks {
         match task.get_command() {
             "puts" => if opts.verbose { println!("{}", task.get_params()) },
-            "sleep" => { thread::sleep_ms(parse_unit(task.get_params()) as u32) },
+            "sleep" => { 
+                thread::sleep(
+                time::Duration::from_millis(parse_unit(task.get_params()) as u64)); 
+            },
             "sh" => {
                 if opts.verbose {
                     println!("{}", task.get_params());
