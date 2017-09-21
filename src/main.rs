@@ -386,7 +386,7 @@ fn invoke_rakefile(program: &str, rakefile: &str, stasks: &Vec<String>, opts: &O
     }
 
     let pvars = process_struct_vars(&structs, process_vars(rvars, vars));
-    println!("Vars = {:#?}", pvars);
+    // println!("Vars = {:#?}", pvars);
     let mut ptasks: Vec<Task> = Vec::new();
     for task in &tasks {
         let ptask = parse_vars_in_task(&task, &pvars);
@@ -585,24 +585,26 @@ fn main() {
     if tasks.len() == 0 {
         tasks.push("default".to_owned());
     }
-    if !srakefile.is_empty() {
-        if (ext && !validate_extension(&srakefile)) 
-        || (format && !validate_rakefile(&srakefile)) {
-            throw_bad_format_file(&program, &srakefile);
-        }
-        if Path::new(&srakefile).exists() {
-            invoke_rakefile(&program, &srakefile, &tasks, &opts);
-        }
-    }
 
-    for rakefile in &rakefiles {
-        if (ext && !validate_extension(&rakefile))
-        || (format && !validate_rakefile(&rakefile)) {
-            throw_bad_format_file(&program, &rakefile);
-        }
-        if Path::new(&rakefile).exists() {
-            invoke_rakefile(&program, &rakefile, &tasks, &opts);
+    let mut erakefile = String::new();
+    if !srakefile.is_empty() {
+        erakefile = srakefile.clone();
+    }
+    if erakefile.is_empty() {
+        for rakefile in &rakefiles {
+            if Path::new(&rakefile).exists() {
+                erakefile = format!("{}", rakefile);
+                break; // Execute first found Rakefile variation.
+            }
         }
     }
-    throw_not_found_failure(&program, &rakefiles);
+    if Path::new(&erakefile).exists() {
+        if (ext && !validate_extension(&erakefile))
+        || (format && !validate_rakefile(&erakefile)) {
+            throw_bad_format_file(&program, &erakefile);
+        }
+        invoke_rakefile(&program, &erakefile, &tasks, &opts);
+    } else {
+        throw_not_found_failure(&program, &rakefiles);
+    }
 }
